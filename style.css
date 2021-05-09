@@ -1,0 +1,78 @@
+body {
+    background: linear-gradient(90deg, #FDBB2D 0%, #22C1C3 100%);
+}
+
+h2 {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: aliceblue;
+}
+.container{
+    background: rgba(84, 84, 84, 0.20);
+    margin-left: 1em;
+    margin-right: 1em;
+    margin-top: 2em;
+    text-align: center;
+    align-content: center;
+    padding: 1em;
+}
+
+.weather-img{
+    box-shadow: #3a4a58;
+    width: 200px;
+    height: auto;
+}
+
+.serial-listing-dropdown{
+    font-family: 'Open Sans', sans-serif;
+    color: aliceblue;
+    width: 300px;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.data-span{
+    font-family: 'Open Sans', sans-serif;
+    color: aliceblue;
+}
+
+.container-nobg{
+    margin-left: 1em;
+    margin-right: 1em;
+    margin-top: 2em;
+    text-align: center;
+    align-content: center;
+    padding: 1em;
+}
+canvas{
+    width: 400px;
+    height: 400px;
+}
+
+.chart-container{
+    margin-left: 1em;
+    margin-right: 1em;
+    text-align: center;
+    align-content: center;
+    padding: 1em;
+}
+.chart-button{
+    font-family: 'Open Sans', sans-serif;
+    color: aliceblue;
+    margin-left: 0.4em;
+    margin-right: 0.4em;
+    padding: 1em;
+    background: rgba(84, 84, 84, 0.20);
+    transition-duration: 0.4s;
+    border: none;
+}
+.chart-button:hover{
+    background-color: rgba(113, 255, 115, 0.2);
+    box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
+}
+.avg-temp-span{
+    font-family: 'Open Sans', sans-serif;
+    color: aliceblue;
+    font-size: xx-large;
+    font-weight: 600;
+}

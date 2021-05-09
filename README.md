@@ -11,5 +11,5 @@ Record a room temperature with Arduino.
 
 ## Schematic
 
-![alt text](https://github.com/napdot/wasLastNightCold/main/schematic.png?raw=true)
+![alt text](https://github.com/napdot/wasLastNightCold/blob/main/schematic.png)
 

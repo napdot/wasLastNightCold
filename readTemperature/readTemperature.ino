@@ -1,26 +1,24 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define COLLECT 0
-#define CLEAR 1
-#define CURRENT 2
+#define COLLECT "1"
 #define MIN_TEMP -254
-
 // Timing
-const int interval = 3600000; // (60m) * (60s/min) * (1000ms/s) = 1hour
+#define INTERVAL 600000 // (10min) * (60s/min) * (1000ms/s) = 10minutes
+#define MAXREADINGS 288 //4 readings/h * 24h * 3 days.  Essentially every 15 minutes. 432 is every 10m however, takes up 97% of global memory
 unsigned long previousMillis = 0;
 unsigned long currentMillis; 
-
 // Readings
-int currentTemp = MIN_TEMP;
-const int maxReadings = 240; //24 readings/d * 10 days.
-float temperatures[maxReadings]; // array for storing temperatures
-int lastReadingIndex = 0; // keep track of last reading index
+float currentTemp = MIN_TEMP;
+float temp;
+// Limited to 2kb. Each float takes 4 bytes. Teoretically could fit 500 but have other variables
+float temperatures[MAXREADINGS]; // array for storing temperatures
+unsigned short lastReadingIndex = 0; // keep track of last reading index
 
-void setAllToZero() {for (int i=0; i < maxReadings; i++) temperatures[i] = MIN_TEMP;}
-
+void setAllToZero() {for (unsigned short i=0; i < MAXREADINGS; i++) temperatures[i] = MIN_TEMP;}
 
 // Temperature
+// Readings are in -55 to +125
 #define TEMP_PIN 2
 OneWire oneWire(TEMP_PIN);
 DallasTemperature sensors(&oneWire);
@@ -31,35 +29,28 @@ void setup() {
   delay(100);
   setAllToZero;
   sensors.requestTemperatures();
-  float temp = sensors.getTempCByIndex(0);
+  temp = sensors.getTempCByIndex(0);
   temperatures[lastReadingIndex] = temp;
-  lastReadingIndex = (lastReadingIndex++) % maxReadings;
+  lastReadingIndex = ((lastReadingIndex++) % MAXREADINGS);
 }
 
 void loop() {
   // Get readings at intervals
   currentMillis = millis();
-  if (currentMillis - previousMillis >= interval) {
+  if (currentMillis - previousMillis >= INTERVAL) {
     previousMillis = currentMillis;
     sensors.requestTemperatures();
-    float temp = sensors.getTempCByIndex(0);
+    temp = sensors.getTempCByIndex(0);
     // Store temperature, update index
     temperatures[lastReadingIndex] = temp;
-    lastReadingIndex = (lastReadingIndex++) % maxReadings;
+    lastReadingIndex = ((lastReadingIndex++) % MAXREADINGS);
     }
   // Control from serial. Using BT module
   if (Serial.available() > 0) {
-    switch(Serial.read()){
-      case 0:
-      sendTemp;
-      break;
-      case 1:
-      clearTemps;
-      break;
-      case 2:
-      readTemp;
-      break;
+    if (Serial.readString().equals(COLLECT)){
+      sendTemp();
     }
+    
   }
 }
 
@@ -68,23 +59,14 @@ void sendTemp(){
   // Set j to the last writen index.
   // Print in reverse order until it finds MIN_TEMP value (which is unwritten value).
   // If no MIN_TEMP, then you actually have maxReadings stored (Loop max number of times).
-  Serial.print((currentMillis - previousMillis), ", ");
-  for (int i=0, j=lastReadingIndex; i < maxReadings; i++ , (j= ((j - 1) % maxReadings))){
+  Serial.print(currentMillis - previousMillis);
+  for (short i=0, j=lastReadingIndex; i < MAXREADINGS; i++ , (j= abs(((j--) % MAXREADINGS)))){
     if (temperatures[j] == MIN_TEMP){
       Serial.println();
       break;
     } else {
-      Serial.print(temperatures[j], ", "); 
+      Serial.print(" ,");
+      Serial.print(temperatures[j]);
     }
   }
-}
-
-void clearTemps(){
-  lastReadingIndex = 0;
-  setAllToZero;
-}
-
-void readTemp(){
-  sensors.requestTemperatures();
-  Serial.println(sensors.getTempCByIndex(0));
 }

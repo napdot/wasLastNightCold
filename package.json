@@ -3,9 +3,7 @@
   "version": "1.0.0",
   "dependencies": {
     "chart.js": "^3.2.1",
-    "electron": "^12.0.7",
-    "serialport": "^9.0.7",
-    "tableify": "^0.0.3"
+    "serialport": "^9.0.7"
   },
   "description": "Temperature sensor with Arduino to record last night temperature.",
   "main": "index.js",
@@ -14,16 +12,24 @@
     "electron-rebuild": "^2.3.5"
   },
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/napdot/wasLastNightCold.git"
   },
-  "author": "",
+  "author": "napdot",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/napdot/wasLastNightCold/issues"
   },
-  "homepage": "https://github.com/napdot/wasLastNightCold#readme"
+  "homepage": "https://github.com/napdot/wasLastNightCold#readme",
+  "keywords": [
+    "arduino",
+    "temperature",
+    "electron",
+    "bluetooth"
+  ]
 }

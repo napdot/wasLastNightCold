@@ -1,6 +1,8 @@
 const serialport = require('serialport');
 const Readline = require('@serialport/parser-readline');
 const Chart = require('chart.js');
+const readingsPerHour = 4;
+const readingInterval = (60/readingsPerHour)*60*1000;
 
 async function listSerialPorts() {
     await serialport.list().then((ports, err) => {
@@ -46,10 +48,14 @@ function displayReceivedData(data) {
     let lastReadingTime = (currentTime.getTime() - timeSince);
     lastReadingTime = new Date(lastReadingTime);    // Not sure if overuse. depends on operator result
     display.innerText = "Last reading was " + Math.floor((timeSince / (60 * 1000))) + " minutes ago";
+    setInterval(function() {
+        timeSince = parseInt(timeSince) + (1000*60);
+        display.innerText = "Last reading was " + Math.floor((timeSince / (60 * 1000))) + " minutes ago";
+    }, 60 * 1000);
     let timestamps = [];
     temperatures.forEach(function (reading, i) {
         // Timestamps from oldest to newest
-        let timestamp = new Date(lastReadingTime - ((temperatures.length - i) * 1000 * 60 * 60));   // 1000ms * 60s * 60m = 1h
+        let timestamp = new Date(lastReadingTime - ((temperatures.length -1 - i) * readingInterval));
         timestamps.push(timestamp);
     });
 
@@ -57,7 +63,7 @@ function displayReceivedData(data) {
 
     // Add chart to canvas
     const canvas = document.getElementById('canvas-graph');
-    const options = {day: 'numeric', month: 'numeric', hour: 'numeric'};
+    const options = {hour12: false, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'};
 
     let dateLabels = [];
     timestamps.forEach((t) => {
@@ -69,6 +75,8 @@ function displayReceivedData(data) {
         datasets: [{
             label: "Temperature",
             data: temperatures,
+            tension: 0.2,
+            pointHoverRadius: 10
         }
         ]
     };
@@ -98,8 +106,8 @@ function displayReceivedData(data) {
     let last24Button = document.getElementById('last-24-button');
     last24Button.addEventListener('click', () => {
         console.log("Displaying last 24");
-        datas.datasets[0].data = (temperatures.length <= 24) ? temperatures : temperatures.slice(-24);
-        datas.labels = (temperatures.length <= 24)? dateLabels : dateLabels.slice(-24);
+        datas.datasets[0].data = (temperatures.length <= 24 * readingsPerHour) ? temperatures : temperatures.slice(-24 * readingsPerHour);
+        datas.labels = (temperatures.length <= 24 * readingsPerHour) ? dateLabels : dateLabels.slice(-24 * readingsPerHour);
         lineChart.update();
         document.getElementById('temp-span').innerText = (average(datas.datasets[0].data) + "º");
     });
@@ -108,13 +116,13 @@ function displayReceivedData(data) {
     lastNightButton.addEventListener('click', () => {
         console.log("Displaying last night");
         // find last 24 hours readings that are inbetween 20:00-8:00
-        let tempL = (temperatures.length <= 24) ? temperatures : temperatures.slice(-24);
-        let tempD = (temperatures.length <= 24)? dateLabels : dateLabels.slice(-24);
+        let tempL = (temperatures.length <= 24 * readingsPerHour) ? temperatures : temperatures.slice(-24 * readingsPerHour);
+        let tempD = (temperatures.length <= 24 * readingsPerHour) ? dateLabels : dateLabels.slice(-24 * readingsPerHour);
         let finalL = [];
         let finalD = [];
 
         // Yeah, I suck :D. It even needs spaces
-        const validStrings = [" 8 PM", " 9 PM", " 10 PM", " 11 PM", " 12 AM", " 1 AM", " 2 AM", " 3 AM", " 4 AM", " 5 AM", " 6 AM", " 7 AM",  "8 AM"];
+        const validStrings = [" 20:", " 21:", " 22:", " 23:", " 00:", " 01:", " 02:", " 03:", " 04:", " 05:", " 06:", " 07:",  " 08:"];
         // This sucks even more :p
         tempD.forEach(function (d, i) { // Check each date
             validStrings.forEach((s) => {
@@ -124,8 +132,6 @@ function displayReceivedData(data) {
                 }});
         });
 
-
-        // document.getElementById('temp-span').innerText = (average(finalL) + "º");
         datas.datasets[0].data = finalL;
         datas.labels = finalD;
         lineChart.update();
@@ -168,10 +174,9 @@ function main(){
                    }
                    instruction.innerText = "Connection started"
                })
-               const parser = port.pipe(new Readline({ delimiter: '\n' }));
 
-               port.on('data', (data) => {
-                   obtainedData = data;
+               port.on('readable', () => {
+                   obtainedData = port.read();
                    instruction.innerText = "Received new data";
                    console.log("Received data");
                    document.getElementById('serial-container-div').style.visibility = 'hidden';

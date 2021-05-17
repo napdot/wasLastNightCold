@@ -1,28 +1,10 @@
-const serialport = require('serialport');
-const Readline = require('@serialport/parser-readline');
-const Chart = require('chart.js');
 const readingsPerHour = 4;
 const readingInterval = (60/readingsPerHour)*60*1000;
+const serialport = require('serialport');
+const Chart = require('chart.js');
+let port;
+let receivedData = [];
 
-async function listSerialPorts() {
-    await serialport.list().then((ports, err) => {
-        if(err) {
-            console.log(err.message);
-            return
-        } else {
-            console.log("no error");
-        }
-        console.log('ports', ports);
-
-        ports.forEach((port) => {
-            const mainArea = document.getElementById('serial-listing');
-            const template = document.querySelector('#serial-port-ind');
-            let clone = document.importNode(template.content, true);
-            clone.querySelector('.serial-port-name').innerText = port.path;
-            mainArea.appendChild(clone);
-        });
-    });
-}
 function average(array) {
     if (array.length === 0) {
         return 0;
@@ -34,17 +16,21 @@ function average(array) {
     return (Math.round((sum/array.length) * 100)) / 100;
 }
 
-function displayReceivedData(data) {
+async function displayReceivedData(data) {
     // data received format [time since last reading] , [last reading], [second last reading], ...
     let display = document.getElementById("received-data-span");
     let currentTime = new Date();
     let temperatures = data.toString().split(', ');
     let instruction = document.getElementById('instruction')
     // temperatures from oldest to newest
-    temperatures.reverse();
+    temperatures = temperatures.reverse();
     // get last reading time
     let timeSince = temperatures.pop();
+    timeSince = timeSince.replace(',','');
     // calculate the readings times
+    timeSince = parseInt(timeSince);
+
+    console.log("Minutes since last reading :" + Math.floor((timeSince / (60 * 1000))));
     let lastReadingTime = (currentTime.getTime() - timeSince);
     lastReadingTime = new Date(lastReadingTime);    // Not sure if overuse. depends on operator result
     display.innerText = "Last reading was " + Math.floor((timeSince / (60 * 1000))) + " minutes ago";
@@ -53,11 +39,17 @@ function displayReceivedData(data) {
         display.innerText = "Last reading was " + Math.floor((timeSince / (60 * 1000))) + " minutes ago";
     }, 60 * 1000);
     let timestamps = [];
+    let temperaturesClean = [];
     temperatures.forEach(function (reading, i) {
         // Timestamps from oldest to newest
         let timestamp = new Date(lastReadingTime - ((temperatures.length -1 - i) * readingInterval));
         timestamps.push(timestamp);
+        temperaturesClean.push(reading.replace(',',''));
     });
+    console.log("Timestamps:");
+    console.log(timestamps);
+    console.log("\n Temperatures:");
+    console.log(temperaturesClean);
 
     document.getElementById('chart-div').style.visibility = 'visible';
 
@@ -74,7 +66,7 @@ function displayReceivedData(data) {
         labels: dateLabels,
         datasets: [{
             label: "Temperature",
-            data: temperatures,
+            data: temperaturesClean,
             tension: 0.2,
             pointHoverRadius: 10
         }
@@ -97,7 +89,7 @@ function displayReceivedData(data) {
     let allButton = document.getElementById('all-button');
     allButton.addEventListener('click', () => {
         console.log("Displaying all");
-        datas.datasets[0].data = temperatures;
+        datas.datasets[0].data = temperaturesClean;
         datas.labels = dateLabels;
         lineChart.update();
         document.getElementById('temp-span').innerText = (average(datas.datasets[0].data) + "º");
@@ -106,8 +98,8 @@ function displayReceivedData(data) {
     let last24Button = document.getElementById('last-24-button');
     last24Button.addEventListener('click', () => {
         console.log("Displaying last 24");
-        datas.datasets[0].data = (temperatures.length <= 24 * readingsPerHour) ? temperatures : temperatures.slice(-24 * readingsPerHour);
-        datas.labels = (temperatures.length <= 24 * readingsPerHour) ? dateLabels : dateLabels.slice(-24 * readingsPerHour);
+        datas.datasets[0].data = (temperaturesClean.length <= 24 * readingsPerHour) ? temperaturesClean : temperaturesClean.slice(-24 * readingsPerHour);
+        datas.labels = (temperaturesClean.length <= 24 * readingsPerHour) ? dateLabels : dateLabels.slice(-24 * readingsPerHour);
         lineChart.update();
         document.getElementById('temp-span').innerText = (average(datas.datasets[0].data) + "º");
     });
@@ -116,8 +108,8 @@ function displayReceivedData(data) {
     lastNightButton.addEventListener('click', () => {
         console.log("Displaying last night");
         // find last 24 hours readings that are inbetween 20:00-8:00
-        let tempL = (temperatures.length <= 24 * readingsPerHour) ? temperatures : temperatures.slice(-24 * readingsPerHour);
-        let tempD = (temperatures.length <= 24 * readingsPerHour) ? dateLabels : dateLabels.slice(-24 * readingsPerHour);
+        let tempL = (temperaturesClean.length <= 24 * readingsPerHour) ? temperaturesClean : temperaturesClean.slice(-24 * readingsPerHour);
+        let tempD = (temperaturesClean.length <= 24 * readingsPerHour) ? dateLabels : dateLabels.slice(-24 * readingsPerHour);
         let finalL = [];
         let finalD = [];
 
@@ -145,54 +137,64 @@ function displayReceivedData(data) {
 
 }
 
-function main(){
-    listSerialPorts();
-    const display = document.getElementById("received-data-span");
-    const instruction = document.getElementById('instruction')
-    const dropdown = document.getElementById('serial-listing');
-    document.getElementById('chart-div').style.visibility = 'hidden';
-    let obtainedData;
-    let port = null;
-    instruction.innerText = "Morning!"
-    setTimeout(() => {  instruction.innerText = "Select BT port"; }, 2000);
 
-    dropdown.addEventListener("change", function () {
-        if (port){
-            port.close(function (err) {
-                console.log('Port closed', err);
-                port = null;
-                instruction.innerText = "Port was closed";
-                display.innerText = "";
-            });
+async function listSerialPorts() {
+    await serialport.list().then((ports, err) => {
+        if (err) {
+            console.log(err.message);
+            return
+        } else {
+            console.log("no error");
         }
-        if (dropdown.selectedIndex !== 0) {
-           if (port === null){
-               console.log('New port connection to: ', dropdown.value);
-               port = new serialport(dropdown.value, {autoOpen: true}, function (err){
-                   if (err) {
-                       return console.log('Port connection error');
-                   }
-                   instruction.innerText = "Connection started"
-               })
+        console.log('ports', ports);
 
-               port.on('readable', () => {
-                   obtainedData = port.read();
-                   instruction.innerText = "Received new data";
-                   console.log("Received data");
-                   document.getElementById('serial-container-div').style.visibility = 'hidden';
-                   displayReceivedData(obtainedData);
-
-               });
-               setTimeout(() => {
-                   instruction.innerText = "Requesting data...";
-                   port.write("1");
-               }, 1000);
-           }
-           else {
-               console.log('Did not start port');
-           }
-        }
+        ports.forEach((port) => {
+            const mainArea = document.getElementById('serial-listing');
+            const template = document.querySelector('#serial-port-ind');
+            let clone = document.importNode(template.content, true);
+            clone.querySelector('.serial-port-name').innerText = port.path;
+            mainArea.appendChild(clone);
+        });
     });
 }
 
-main()
+window.addEventListener('load', () => {
+    document.getElementById('instruction').innerText = "Morning!";
+    listSerialPorts();
+});
+
+
+document.getElementById("serial-listing").addEventListener('change', () => {
+    if (this.selectedIndex !== 0) {
+        console.log('New port connection to: ', document.getElementById("serial-listing").value);
+        port = new serialport(document.getElementById("serial-listing").value, {autoOpen: true}, function (err) {
+            if (err) {
+                console.log(err);
+                document.getElementById('instruction').innerText = "Port error";
+                return console.log('Port connection error');
+            }
+            document.getElementById('instruction').innerText = "Connection started";
+            port.write("1\r\n", function(err) {
+                if (err) {
+                    return console.log('Error while writing: ', err.message)
+                }
+                document.getElementById('instruction').innerText = "Requesting data...";
+                console.log('Message sent.')
+            });
+            port.on('readable', function () {
+                let data = port.read();
+                receivedData.push(data);
+                document.getElementById('make-container').style.visibility = 'visible';
+                document.getElementById('instruction').innerText = "Data received";
+            })
+        });
+    };
+});
+document.getElementById("make-graphs").addEventListener('click', () => {
+    console.log("Received data (raw): ");
+    console.log(receivedData.toString().split(', '));
+    displayReceivedData(receivedData);
+});
+
+
+

@@ -6,7 +6,6 @@
     <link href="style.css" rel="stylesheet" />
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300&display=swap" rel="stylesheet">
-
 </head>
 <body>
 <template id="serial-port-ind">
@@ -15,7 +14,7 @@
 <div class="container">
     <div class= "instruction">
         <div class="div-instruction-heading">
-            <h2 id="instruction">Default Text</h2>
+            <h2 id="instruction"> </h2>
         </div>
     </div>
 </div>
@@ -24,18 +23,20 @@
         <select id="serial-listing" class="serial-listing-dropdown">
             <option selected="">List of ports</option>
         </select>
-
+    </div>
+    <div id="make-container" class="serial-container" style="visibility: hidden">
+        <button id="make-graphs"  class="make-button">Make graphs</button>
     </div>
 </div>
-<div id='chart-div' class="chart-container">
+<div id='chart-div' class="chart-container" style="visibility: hidden">
     <div class="canvas-container">
         <canvas id="canvas-graph">
         </canvas>
     </div>
     <div class="chart-actions">
-        <button id='all-button' class="chart-button">All</button>
-        <button id='last-24-button' class="chart-button">Last 24h</button>
-        <button id='last-night-button' class="chart-button">Last Night</button>
+        <button id='all-button' class=>All</button>
+        <button id='last-24-button'>Last 24h</button>
+        <button id='last-night-button'>Last Night</button>
     </div>
 </div>
 <div id="reading-container" class="container-nobg">

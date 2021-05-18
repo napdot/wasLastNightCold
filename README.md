@@ -7,9 +7,4 @@ Record a room temperature with Arduino.
 - Arduino Nano
 - DS18B20 1-Wire Temperature Sensor
 - 4.7K Ohm Resistor
-- HC - 05 Bluetooth Serial Module
-
-## Schematic
-
-![alt text](https://github.com/napdot/wasLastNightCold/blob/main/schematic.png)
-
+- HC - 06 Bluetooth Serial Module
